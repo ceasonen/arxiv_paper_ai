@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A daily reading desk for AI papers from arXiv. Explore new papers, save a reading list, and open the original PDFs.">
+  <meta name="theme-color" content="#14372c">
+  <title>Paper Radar · Daily AI research</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#papers">Skip to papers</a>
+  <header class="masthead">
+    <div class="masthead-inner shell">
+      <a class="brand" href="./"><span class="radar-mark" aria-hidden="true"></span>Paper Radar</a>
+      <nav aria-label="Project links">
+        <a href="https://ceasonen.github.io/">Cheng Chen</a>
+        <a href="https://github.com/ceasonen/arxiv_paper_ai">GitHub</a>
+      </nav>
+    </div>
+    <div class="hero shell">
+      <div>
+        <p class="eyebrow">THE DAILY RESEARCH DESK</p>
+        <h1>AI papers, in focus.</h1>
+        <p class="hero-description">Follow new arXiv papers in multimodal AI, language models, robotics, and more. Save what you want to read.</p>
+      </div>
+      <div class="digest" aria-label="Feed status">
+        <span class="digest-label"><span aria-hidden="true"></span> Latest arXiv release</span>
+        <p id="source-date">Loading…</p>
+        <span id="digest-count">Daily catalog</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace shell">
+    <aside class="sidebar" aria-label="Paper filters">
+      <h2 class="sidebar-title">Library</h2>
+      <div class="mode-controls" role="group" aria-label="Library">
+        <button class="side-button is-active" type="button" data-mode="all" aria-pressed="true">Browse papers</button>
+        <button class="side-button" type="button" data-mode="saved" aria-pressed="false">Reading list <span id="saved-count">0</span></button>
+      </div>
+      <h2 class="sidebar-title topics-heading">Topics</h2>
+      <div id="topics" class="topics" role="group" aria-label="Topics"></div>
+    </aside>
+    <section id="papers" class="paper-section" aria-labelledby="heading" tabindex="-1">
+      <div class="section-heading">
+        <div>
+          <h2 id="heading">Browse papers</h2>
+          <p id="result-count" role="status" aria-live="polite">Loading the catalog…</p>
+        </div>
+        <button id="export" type="button" class="secondary" hidden>Export PDF links</button>
+      </div>
+      <div class="filters">
+        <label class="search-label">
+          <span class="visually-hidden">Search papers</span>
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="search" type="search" placeholder="Search by title, author, or keyword" autocomplete="off">
+        </label>
+        <label class="release-label">
+          <span class="visually-hidden">Announcement date</span>
+          <select id="release">
+            <option value="latest">Latest release</option>
+            <option value="all">All releases</option>
+          </select>
+        </label>
+      </div>
+      <div id="entries"></div>
+      <button id="more" type="button" class="secondary more" hidden>Load more papers</button>
+      <noscript><p>Enable JavaScript to browse the catalog, or <a href="https://arxiv.org/list/cs.AI/recent">browse recent papers on arXiv</a>.</p></noscript>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Paper Radar</span>
+    <p>Metadata from <a href="https://arxiv.org/">arXiv</a>. Reading lists are saved on this device.</p>
+  </footer>
+</body>
+</html>

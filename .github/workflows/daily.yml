@@ -1,0 +1,46 @@
+name: Refresh and deploy Paper Radar
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 11 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: paper-radar-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the catalog updater
+        run: python3 -m unittest discover -s tests -v
+      - name: Refresh the rolling catalog
+        run: bash .github/scripts/refresh.sh
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
