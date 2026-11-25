@@ -35,4 +35,6 @@ The `paper-data` branch stores the rolling catalog. Actions builds and publishes
 python3 -m unittest discover -s tests -v
 ```
 
+The interface adapts the [Tabler v1.7.5 Job Listing template](https://preview.tabler.io/job-listing.html). The upstream stylesheet and [MIT license](web/vendor/tabler/LICENSE.tabler.txt) are included with the website.
+
 Inspired by [LLM arXiv Daily](https://github.com/xuchen-li/llm-arxiv-daily).

@@ -45,14 +45,14 @@ function link(label, href, className) {
 }
 
 function setPressed(button, pressed) {
-  button.classList.toggle("is-active", pressed);
+  button.classList.toggle("active", pressed);
   button.setAttribute("aria-pressed", String(pressed));
 }
 
 function renderTopics() {
   const choices = [["", "All topics"], ...Object.entries(catalog.topics)];
   topicButtons.replaceChildren(...choices.map(([value, label]) => {
-    const button = element("button", "side-button", label);
+    const button = element("button", "list-group-item list-group-item-action", label);
     button.type = "button";
     button.dataset.topic = value;
     setPressed(button, topic === value);
@@ -85,32 +85,32 @@ function matchingPapers() {
 }
 
 function displayPaper(paper) {
-  const card = element("article", "paper");
-  const meta = element("div", "paper-meta");
-  const label = catalog.topics[paper.topics[0]];
-  if (label) meta.append(element("span", "topic-label", label));
-  const time = element("time", "", formatDate(paper.date));
+  const card = select("paper-template").content.firstElementChild.cloneNode(true);
+  const field = (name) => card.querySelector(`[data-paper="${name}"]`);
+  const time = field("meta").querySelector("time");
+  time.textContent = formatDate(paper.date);
   time.dateTime = paper.date;
-  meta.append(time, element("span", "", paper.categories.slice(0, 3).join(" · ")));
+  const categories = field("categories");
+  categories.textContent = paper.categories.slice(0, 3).join(" · ");
+  categories.hidden = paper.categories.length === 0;
 
-  const title = element("h3");
-  title.append(link(paper.title, officialLink("abs", paper.id)));
+  field("title").append(link(paper.title, officialLink("abs", paper.id), "text-reset"));
   const authorLine = paper.authors.slice(0, 3).join(", ")
     + (paper.authors.length > 3 ? ` +${paper.authors.length - 3} more` : "");
-  const authors = element("p", "paper-authors", authorLine || "Authors listed on arXiv");
+  field("authors").textContent = authorLine || "Authors listed on arXiv";
+  const titleTopic = catalog.topics[topic] || catalog.topics[paper.topics[0]];
+  if (titleTopic) field("topics").append(element("span", "badge bg-blue-lt", titleTopic));
 
-  const actions = element("div", "paper-actions");
-  actions.append(link("PDF", officialLink("pdf", paper.id)));
+  const actions = field("links");
+  actions.append(link("PDF", officialLink("pdf", paper.id), "btn btn-sm btn-outline-primary"));
   if (typeof paper.code === "string" && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/.test(paper.code)) {
-    actions.append(link("Code", paper.code));
+    actions.append(link("Code", paper.code, "btn btn-sm btn-outline-secondary"));
   }
 
-  const abstract = element("p", "abstract", paper.abstract);
-  abstract.hidden = true;
+  const abstract = card.querySelector(".abstract");
+  abstract.textContent = paper.abstract;
   abstract.id = "abstract-" + paper.id;
-  const abstractButton = element("button", "text-button", "Abstract");
-  abstractButton.type = "button";
-  abstractButton.setAttribute("aria-expanded", "false");
+  const abstractButton = field("abstract-toggle");
   abstractButton.setAttribute("aria-controls", abstract.id);
   abstractButton.addEventListener("click", () => {
     abstract.hidden = !abstract.hidden;
@@ -118,10 +118,16 @@ function displayPaper(paper) {
     abstractButton.textContent = abstract.hidden ? "Abstract" : "Hide abstract";
   });
 
-  const save = element("button", "text-button save", saved.has(paper.id) ? "Saved" : "Save");
-  save.type = "button";
-  save.setAttribute("aria-pressed", String(saved.has(paper.id)));
+  const save = card.querySelector(".save");
   save.setAttribute("aria-label", "Save " + paper.title);
+  const updateSave = () => {
+    const isSaved = saved.has(paper.id);
+    save.textContent = isSaved ? "Saved" : "Save";
+    save.setAttribute("aria-pressed", String(isSaved));
+    save.classList.toggle("btn-primary", isSaved);
+    save.classList.toggle("btn-outline-primary", !isSaved);
+  };
+  updateSave();
   save.addEventListener("click", () => {
     if (saved.has(paper.id)) saved.delete(paper.id);
     else saved.set(paper.id, paper);
@@ -129,16 +135,13 @@ function displayPaper(paper) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(saved.entries()).slice(-500)));
     } catch { /* Reading list still works for this visit. */ }
     select("saved-count").textContent = saved.size;
-    save.textContent = saved.has(paper.id) ? "Saved" : "Save";
-    save.setAttribute("aria-pressed", String(saved.has(paper.id)));
+    updateSave();
     if (mode === "saved") {
       render();
       document.querySelector('[data-mode="saved"]').focus();
     }
   });
 
-  actions.append(abstractButton, save);
-  card.append(meta, title, authors, actions, abstract);
   return card;
 }
 
@@ -158,7 +161,7 @@ function render() {
     if (mode === "all" && release.value === "latest" && !topic && !query.value.trim()) {
       text = "No matching papers in the latest release. Choose All releases to browse the archive.";
     }
-    catalogContainer.append(element("p", "message", text));
+    catalogContainer.append(element("p", "alert alert-info mb-0", text));
   }
   more.hidden = items.length <= visibleCount;
 }
@@ -196,6 +199,11 @@ exportButton.addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+const desktop = matchMedia("(min-width: 768px)");
+const topicFilters = select("topic-filters");
+topicFilters.open = desktop.matches;
+desktop.addEventListener("change", (event) => { topicFilters.open = event.matches; });
+
 try {
   const response = await fetch("./data/catalog.json", {cache: "no-cache"});
   if (!response.ok) throw new Error("Catalog request failed");
@@ -205,6 +213,8 @@ try {
   catalog.papers = catalog.papers.filter(validPaper);
   catalog.papersById = new Map(catalog.papers.map((p) => [p.id, p]));
   select("source-date").textContent = formatDate(catalog.source_date);
+  select("source-date").dateTime = catalog.source_date;
+  select("digest-count").hidden = false;
   select("digest-count").textContent = `${catalog.papers.length.toLocaleString()} papers in archive`;
   const dates = [...new Set(catalog.papers.map((p) => p.date))].sort().reverse();
   for (const date of dates) {
@@ -217,7 +227,7 @@ try {
   catalog = undefined;
   select("source-date").textContent = "Unavailable";
   select("result-count").textContent = "The catalog could not be loaded.";
-  const hint = element("p", "message", "Refresh the page, or browse directly on ");
+  const hint = element("p", "alert alert-warning mb-0", "Refresh the page, or browse directly on ");
   hint.append(link("arXiv", "https://arxiv.org/list/cs.AI/recent"), ".");
   catalogContainer.replaceChildren(hint);
 }

@@ -6,7 +6,8 @@ archive="${RUNNER_TEMP:?}/paper-radar-data"
 catalog=dist/data/catalog.json
 
 mkdir -p dist/data
-cp web/index.html web/styles.css web/app.js dist/
+cp web/index.html web/app.js dist/
+cp -R web/vendor dist/
 
 if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null; then
   git fetch --depth=1 origin "refs/heads/$branch"
