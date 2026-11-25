@@ -10,14 +10,16 @@ import time
 from datetime import date, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
+from affiliations import enrich
+
 FEED_URL = "https://rss.arxiv.org/rss/cs.AI+cs.CL+cs.CV+cs.LG+cs.RO+cs.DC"
-USER_AGENT = "PaperRadar/1.0 (+https://ceasonen.github.io/arxiv-paper-ai/)"
+USER_AGENT = "PaperRadar/1.0 (+https://ceasonen.github.io/arxiv_paper_ai/)"
 ARXIV_NS = "{http://arxiv.org/schemas/atom}"
 DC_NS = "{http://purl.org/dc/elements/1.1/}"
 ID_PATTERN = re.compile(r"(?:\d{4}\.\d{4,5}|[a-z][a-z.-]*/\d{7})")
@@ -41,6 +43,10 @@ class Paper(TypedDict):
     categories: list[str]
     topics: list[str]
     code: str | None
+    affiliations: NotRequired[list[str]]
+    affiliation_source: NotRequired[str]
+    affiliation_url: NotRequired[str]
+    affiliation_checked: NotRequired[str]
 
 
 class Catalog(TypedDict):
@@ -107,6 +113,7 @@ def merge(previous: Catalog | None, day: date, fresh: list[Paper]) -> Catalog:
     for paper in fresh:
         prior = by_id.get(paper["id"])
         by_id[paper["id"]] = paper if prior is None else {
+            **prior,
             **paper,
             "date": min(prior["date"], paper["date"]),
             "categories": sorted(set(prior["categories"]) | set(paper["categories"])),
@@ -147,11 +154,13 @@ def fetch_feed() -> bytes:
     raise RuntimeError("arXiv RSS could not be retrieved")
 
 
-def update(output: Path, feed: Path | None = None) -> None:
+def update(output: Path, feed: Path | None = None, affiliation_limit: int = 0) -> None:
     old = json.loads(output.read_text()) if output.is_file() else None
     day, papers = parse_feed(feed.read_bytes() if feed else fetch_feed())
     new = merge(old, day, papers)
-    if new is not old:
+    if affiliation_limit:
+        new = {**new, "papers": enrich(new["papers"], date.today(), affiliation_limit, USER_AGENT)}
+    if new != old:
         output.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(dir=output.parent, delete=False, mode="w", encoding="utf-8") as temporary:
             temp_path = Path(temporary.name)
@@ -162,7 +171,9 @@ def update(output: Path, feed: Path | None = None) -> None:
                 temp_path.replace(output)
             finally:
                 temp_path.unlink(missing_ok=True)
-    print(f"{new['source_date']}: {len(papers)} matching feed entries, {len(new['papers'])} papers in archive.")
+    covered = sum(bool(paper.get('affiliations')) for paper in new['papers'])
+    print(f"{new['source_date']}: {len(papers)} matching feed entries; "
+          f"{len(new['papers'])} archived, {covered} with affiliations.")
 
 
 def download(paper_id: str, directory: Path) -> None:
@@ -197,13 +208,15 @@ def main() -> int:
     refresh = commands.add_parser("update", help="Refresh the catalog from arXiv RSS")
     refresh.add_argument("--output", type=Path, default=Path("web/data/catalog.json"))
     refresh.add_argument("--feed", type=Path, help="Use a local RSS document")
+    refresh.add_argument("--affiliation-limit", type=int, default=0, choices=range(13),
+                         help="Enrich affiliations and set the maximum number of arXiv HTML checks")
     pdf = commands.add_parser("download", help="Download one selected PDF for personal use")
     pdf.add_argument("id")
     pdf.add_argument("--directory", type=Path, default=Path("papers"))
     args = parser.parse_args()
     try:
         if args.command == "update":
-            update(args.output, args.feed)
+            update(args.output, args.feed, args.affiliation_limit)
         else:
             download(args.id, args.directory)
     except (OSError, ValueError, ET.ParseError) as exc:

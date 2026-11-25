@@ -23,7 +23,7 @@ else
 fi
 trap 'git worktree remove --force "$archive"' EXIT
 
-python3 radar.py update --output "$catalog"
+python3 radar.py update --output "$catalog" --affiliation-limit 10
 chmod 644 "$catalog"
 cp "$catalog" "$archive/catalog.json"
 git -C "$archive" add catalog.json

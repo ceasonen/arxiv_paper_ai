@@ -25,6 +25,8 @@ jobs:
       - name: Test the catalog updater
         run: python3 -m unittest discover -s tests -v
       - name: Refresh the rolling catalog
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
         run: bash .github/scripts/refresh.sh
       - uses: actions/upload-pages-artifact@v4
         with:

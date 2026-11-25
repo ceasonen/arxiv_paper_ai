@@ -11,6 +11,30 @@ const officialLink = (kind, id) => `https://arxiv.org/${kind}/${id}`;
 const catalogContainer = select("entries");
 const query = select("search");
 const release = select("release");
+const authorSearch = select("author-search");
+const institutionSearch = select("institution-search");
+const clearFilters = select("clear-filters");
+const searchInputs = [query, authorSearch, institutionSearch];
+const institutionAliases = new Map(Object.entries({
+  "同济大学": "Tongji University",
+  "清华大学": "Tsinghua University",
+  "北京大学": "Peking University",
+  "浙江大学": "Zhejiang University",
+  "上海交通大学": "Shanghai Jiao Tong University",
+  "复旦大学": "Fudan University",
+  "中国科学院": "Chinese Academy of Sciences",
+  "中国科学院自动化研究所": "Institute of Automation Chinese Academy of Sciences",
+  "香港科技大学": "Hong Kong University of Science and Technology",
+  "香港科技大学 广州": "Hong Kong University of Science and Technology Guangzhou",
+  "香港科技大学广州": "Hong Kong University of Science and Technology Guangzhou",
+  "港科广": "Hong Kong University of Science and Technology Guangzhou",
+  "新加坡国立大学": "National University of Singapore",
+  "mit": "Massachusetts Institute of Technology",
+  "nus": "National University of Singapore",
+  "hkust gz": "Hong Kong University of Science and Technology Guangzhou",
+  "sjtu": "Shanghai Jiao Tong University",
+  "zju": "Zhejiang University",
+}));
 const more = select("more");
 const exportButton = select("export");
 const topicButtons = select("topics");
@@ -72,16 +96,51 @@ function sourcePapers() {
   return Array.from(saved.entries(), ([id, paper]) => catalog.papersById.get(id) || paper).filter(validPaper);
 }
 
+function normalized(value) {
+  return value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function matchesName(value, tokens) {
+  const words = normalized(value).split(" ");
+  return tokens.every((token) => words.some((word) => word.startsWith(token)));
+}
+
+function affiliations(paper) {
+  return Array.isArray(paper.affiliations) ? paper.affiliations.filter((name) => typeof name === "string") : [];
+}
+
+function nameTokens(value, aliases) {
+  const input = normalized(value);
+  return normalized(aliases?.get(input) || input).split(" ").filter(Boolean);
+}
+
 function matchingPapers() {
   const words = query.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const author = nameTokens(authorSearch.value);
+  const institution = nameTokens(institutionSearch.value, institutionAliases);
   return sourcePapers().filter((paper) => {
     const matchesDate = mode === "saved" || release.value === "all"
       || paper.date === (release.value === "latest" ? catalog.source_date : release.value);
     if (!matchesDate || (topic && !paper.topics.includes(topic))) return false;
+    if (author.length && !paper.authors.some((name) => matchesName(name, author))) return false;
+    if (institution.length && !affiliations(paper).some((name) => matchesName(name, institution))) return false;
     if (!words.length) return true;
     const index = [paper.id, paper.title, paper.abstract, ...paper.authors, ...paper.categories].join(" ").toLowerCase();
     return words.every((word) => index.includes(word));
   });
+}
+
+function filterButton(name, input) {
+  const button = element("button", "btn btn-sm btn-link p-0 text-start text-wrap", name);
+  button.type = "button";
+  button.setAttribute("aria-label", `Filter by ${input === authorSearch ? "author" : "institution"}: ${name}`);
+  button.addEventListener("click", () => {
+    input.value = name;
+    resetAndRender();
+    input.focus({preventScroll: true});
+  });
+  return button;
 }
 
 function displayPaper(paper) {
@@ -95,9 +154,39 @@ function displayPaper(paper) {
   categories.hidden = paper.categories.length === 0;
 
   field("title").append(link(paper.title, officialLink("abs", paper.id), "text-reset"));
-  const authorLine = paper.authors.slice(0, 3).join(", ")
-    + (paper.authors.length > 3 ? ` +${paper.authors.length - 3} more` : "");
-  field("authors").textContent = authorLine || "Authors listed on arXiv";
+  const authorLine = field("authors");
+  if (!paper.authors.length) authorLine.textContent = "Authors listed on arXiv";
+  const showAuthors = (limit) => {
+    authorLine.replaceChildren();
+    paper.authors.slice(0, limit).forEach((name, index) => {
+      if (index) authorLine.append(", ");
+      authorLine.append(filterButton(name, authorSearch));
+    });
+    if (paper.authors.length > limit) {
+      const moreAuthors = element("button", "btn btn-sm btn-link p-0 ms-1", `+${paper.authors.length - limit} more`);
+      moreAuthors.type = "button";
+      moreAuthors.addEventListener("click", () => {
+        showAuthors(paper.authors.length);
+        authorLine.querySelectorAll("button")[limit]?.focus();
+      });
+      authorLine.append(moreAuthors);
+    }
+  };
+  if (paper.authors.length) showAuthors(3);
+  const names = affiliations(paper);
+  const institutionLine = field("affiliations");
+  if (names.length) {
+    institutionLine.hidden = false;
+    institutionLine.append(element("span", "text-secondary", "Affiliations: "));
+    names.forEach((name, index) => {
+      if (index) institutionLine.append(" · ");
+      institutionLine.append(filterButton(name, institutionSearch));
+    });
+    const provenance = paper.affiliation_source === "arxiv" ? officialLink("html", paper.id) : paper.affiliation_url;
+    if (provenance && /^https:\/\/(?:arxiv\.org\/html\/[^?#]+|openalex\.org\/W\d+)$/.test(provenance)) {
+      institutionLine.append(" ", link("Source", provenance, "link-secondary ms-1"));
+    }
+  }
   const titleTopic = catalog.topics[topic] || catalog.topics[paper.topics[0]];
   if (titleTopic) field("topics").append(element("span", "badge bg-blue-lt", titleTopic));
 
@@ -154,11 +243,13 @@ function render() {
   select("result-count").textContent = `${items.length.toLocaleString()} ${items.length === 1 ? "paper" : "papers"}`;
   exportButton.hidden = mode !== "saved" || saved.size === 0;
   release.disabled = mode === "saved";
+  clearFilters.hidden = !topic && !searchInputs.some((input) => input.value.trim())
+    && release.value === "latest";
   catalogContainer.replaceChildren(...items.slice(0, visibleCount).map(displayPaper));
   if (!items.length) {
     let text = "No papers match these filters.";
     if (mode === "saved" && !saved.size) text = "Your reading list is empty. Save a paper to find it here.";
-    if (mode === "all" && release.value === "latest" && !topic && !query.value.trim()) {
+    if (mode === "all" && release.value === "latest") {
       text = "No matching papers in the latest release. Choose All releases to browse the archive.";
     }
     catalogContainer.append(element("p", "alert alert-info mb-0", text));
@@ -174,7 +265,7 @@ function resetAndRender() {
 document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
   mode = button.dataset.mode;
   topic = "";
-  query.value = "";
+  searchInputs.forEach((input) => { input.value = ""; });
   resetAndRender();
 }));
 topicButtons.addEventListener("click", (event) => {
@@ -183,8 +274,23 @@ topicButtons.addEventListener("click", (event) => {
   topic = button.dataset.topic;
   resetAndRender();
 });
-query.addEventListener("input", resetAndRender);
+searchInputs.forEach((input) => input.addEventListener("input", resetAndRender));
 release.addEventListener("change", resetAndRender);
+clearFilters.addEventListener("click", () => {
+  topic = "";
+  release.value = "latest";
+  searchInputs.forEach((input) => { input.value = ""; });
+  select("author-options").replaceChildren();
+  resetAndRender();
+  query.focus();
+});
+authorSearch.addEventListener("input", () => {
+  const terms = nameTokens(authorSearch.value);
+  const names = authorSearch.value.trim().length >= 2
+    ? (catalog?.authorNames || []).filter((name) => matchesName(name, terms)).slice(0, 8)
+    : [];
+  select("author-options").replaceChildren(...names.map((name) => new Option(name, name)));
+});
 more.addEventListener("click", () => {
   visibleCount += PAGE_SIZE;
   render();
@@ -212,6 +318,12 @@ try {
       || !catalog.topics || !Array.isArray(catalog.papers)) throw new Error("Invalid catalog");
   catalog.papers = catalog.papers.filter(validPaper);
   catalog.papersById = new Map(catalog.papers.map((p) => [p.id, p]));
+  catalog.authorNames = [...new Set(catalog.papers.flatMap((paper) => paper.authors))]
+    .sort((a, b) => a.localeCompare(b));
+  const names = [...new Set(catalog.papers.flatMap(affiliations))].sort((a, b) => a.localeCompare(b));
+  select("institution-options").replaceChildren(...names.map((name) => new Option(name, name)));
+  const covered = catalog.papers.filter((paper) => affiliations(paper).length).length;
+  select("affiliation-coverage").textContent = `Affiliations indexed for ${covered.toLocaleString()} of ${catalog.papers.length.toLocaleString()} archived papers.`;
   select("source-date").textContent = formatDate(catalog.source_date);
   select("source-date").dateTime = catalog.source_date;
   select("digest-count").hidden = false;
