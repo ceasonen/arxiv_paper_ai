@@ -1,3 +1,4 @@
+@font-face {font-family: Caveat; src: url("./fonts/caveat-bold.woff2") format("woff2"); font-weight: 700; font-display: swap;}
 @font-face {font-family: 'Inter'; src: url('./fonts/inter.woff2') format('woff2'); font-style: normal; font-weight: 400 800; font-display: swap;}
 @font-face {font-family: 'Newsreader'; src: url('./fonts/newsreader.woff2') format('woff2'); font-style: normal; font-weight: 400 700; font-display: swap;}
 
@@ -12,20 +13,21 @@
 
 body { font-family: var(--tblr-font-sans-serif); }
 .radar-masthead {
-  color: #f4f8fb;
-  background: linear-gradient(115deg,#172e47,#2a6080);
-  border: 0;
+  color: #22354b;
+  background: #fff;
+  border: 1px solid #dce5ed;
+  border-inline-start: 4px solid #2e5c86;
 }
-.radar-masthead > .card-body { padding: clamp(1.4rem, 4vw, 3.5rem); }
+.radar-masthead > .card-body { padding: clamp(1.15rem, 2.5vw, 2.15rem); }
 .radar-masthead .page-title {
-  font-family: "Newsreader", Georgia, serif;
-  font-size: clamp(2.7rem, 6vw, 5rem);
+  font-family: Caveat, cursive;
+  font-size: clamp(2.6rem, 5vw, 4.15rem);
   line-height: .97;
   margin-bottom: .25em;
-  font-weight: 550;
+  font-weight: 700;
 }
-.radar-masthead p { font-size: 1.05rem; max-width: 35rem; color: #e4eff7; }
-.release-card { min-width: min(15rem, 100%); color: #182b43; background: #f5f9fc; }
+.radar-masthead p { font-size: 1.05rem; max-width: 35rem; color: #405871; }
+.release-card { min-width: min(12rem, 100%); color: #182b43; background: #eef4f8; box-shadow: none; border: 0; }
 .release-card #digest-count { background: #e5eef5; color: #254f73; }
 #entries .card { border-color: #dde5ed; }
 [data-paper="title"] { font-family: "Newsreader", Georgia, serif; font-size: 1.5rem; line-height: 1.15; font-weight: 550; }
