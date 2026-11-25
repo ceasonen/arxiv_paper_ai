@@ -1,0 +1,36 @@
+@font-face {font-family: 'Inter'; src: url('./fonts/inter.woff2') format('woff2'); font-style: normal; font-weight: 400 800; font-display: swap;}
+@font-face {font-family: 'Newsreader'; src: url('./fonts/newsreader.woff2') format('woff2'); font-style: normal; font-weight: 400 700; font-display: swap;}
+
+/* Theme layer for Tabler’s Job Listing template. */
+:root {
+  --tblr-font-sans-serif: "Inter", system-ui, sans-serif;
+  --tblr-body-bg: #f5f7fa;
+  --tblr-body-color: #182b43;
+  --tblr-primary: #2e5c86;
+  --tblr-primary-rgb: 46,92,134;
+}
+
+body { font-family: var(--tblr-font-sans-serif); }
+.radar-masthead {
+  color: #f4f8fb;
+  background: linear-gradient(115deg,#172e47,#2a6080);
+  border: 0;
+}
+.radar-masthead > .card-body { padding: clamp(1.4rem, 4vw, 3.5rem); }
+.radar-masthead .page-title {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(2.7rem, 6vw, 5rem);
+  line-height: .97;
+  margin-bottom: .25em;
+  font-weight: 550;
+}
+.radar-masthead p { font-size: 1.05rem; max-width: 35rem; color: #e4eff7; }
+.release-card { min-width: min(15rem, 100%); color: #182b43; background: #f5f9fc; }
+.release-card #digest-count { background: #e5eef5; color: #254f73; }
+#entries .card { border-color: #dde5ed; }
+[data-paper="title"] { font-family: "Newsreader", Georgia, serif; font-size: 1.5rem; line-height: 1.15; font-weight: 550; }
+#paper-template [hidden] { display: none !important; }
+@media(max-width:575px) {
+  .radar-masthead .page-title { font-size: 2.8rem; }
+  .navbar .nav-link { font-size: .78rem; }
+}
