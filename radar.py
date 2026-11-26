@@ -53,6 +53,7 @@ class Catalog(TypedDict):
     schema: int
     source_date: str
     topics: dict[str, str]
+    topic_patterns: NotRequired[dict[str, str]]
     papers: list[Paper]
 
 
@@ -127,6 +128,7 @@ def merge(previous: Catalog | None, day: date, fresh: list[Paper]) -> Catalog:
     result: Catalog = {
         "schema": 1, "source_date": day.isoformat(),
         "topics": {key: label for key, (label, _) in TOPICS.items()},
+        "topic_patterns": {key: pattern for key, (_, pattern) in TOPICS.items()},
         "papers": kept,
     }
     return previous if previous == result else result

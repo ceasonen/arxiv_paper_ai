@@ -8,7 +8,7 @@
   <title>Paper Radar · Daily AI research</title>
   <link rel="stylesheet" href="./vendor/tabler/tabler.min.css">
   <link rel="stylesheet" href="./theme.css?v=reading-desk">
-  <script type="module" src="./app.js?v=affiliations-1"></script>
+  <script type="module" src="./app.js?v=fetch-markdown"></script>
 </head>
 <body>
   <a class="visually-hidden-focusable p-2" href="#papers">Skip to papers</a>
@@ -79,10 +79,13 @@
                         <h2 id="heading" class="h3 mb-1">Browse papers</h2>
                         <p id="result-count" class="text-secondary mb-0" role="status" aria-live="polite">Loading the catalog…</p>
                       </div>
-                      <div class="col-auto">
+                      <div class="col-12 col-sm-auto d-flex gap-2 flex-wrap">
+                        <button id="fetch-more" type="button" class="btn btn-primary btn-sm" disabled aria-describedby="fetch-status">Fetch more papers</button>
+                        <button id="markdown" type="button" class="btn btn-outline-primary btn-sm" disabled>Download Markdown</button>
                         <button id="export" type="button" class="btn btn-outline-primary btn-sm" hidden>Export PDF links</button>
                       </div>
                     </div>
+                    <p id="fetch-status" class="text-secondary small" role="status" hidden></p>
                     <div class="row g-2">
                       <div class="col">
                         <label class="visually-hidden" for="search">Search papers</label>
@@ -93,6 +96,7 @@
                         <select id="release" class="form-select">
                           <option value="latest">Latest release</option>
                           <option value="all">All releases</option>
+                          <option value="fetched" hidden disabled>Fetched in this session</option>
                         </select>
                       </div>
                     </div>

@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test the catalog updater
         run: python3 -m unittest discover -s tests -v
+      - name: Test new-batch parsing and Markdown export
+        run: node --test tests/*.test.mjs
       - name: Refresh the rolling catalog
         env:
           OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}

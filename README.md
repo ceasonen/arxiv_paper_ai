@@ -19,9 +19,11 @@ Open http://127.0.0.1:8000. To download an individual paper for personal use:
 python3 radar.py download 2611.33158
 ```
 
-The website links directly to arXiv for PDFs. The reading list stays in browser storage and can export a text file of original PDF links.
+The website links directly to arXiv for PDFs. The reading list stays in browser storage and can export a text file of original PDF links. **Download Markdown** saves all papers matching the current filters, including results beyond the first page. The file includes titles, authors, dates, available affiliations, abstracts, and links.
 
 ## Updates
+
+**Fetch more papers** retrieves the next batch of up to 25 arXiv DOI records from the [DataCite public API](https://support.datacite.org/docs/rest-api). The browser skips duplicates and opens **Fetched in this session** when new records arrive. The shared archive updates through the scheduled RSS workflow. Save a fetched paper to keep it in your reading list after closing the tab.
 
 The GitHub Actions workflow runs daily at 11:23 UTC (19:23 Beijing time). It fetches a combined [arXiv RSS feed](https://info.arxiv.org/help/rss.html), deduplicates records by arXiv identifier, and preserves the previous catalog if fetching or parsing fails. An unpublished or unchanged batch can leave the displayed release date unchanged.
 
@@ -37,6 +39,7 @@ The `paper-data` branch stores the rolling catalog. Actions builds and publishes
 
 ```sh
 python3 -m unittest discover -s tests -v
+node --test tests/*.test.mjs
 ```
 
 The interface adapts the [Tabler v1.7.5 Job Listing template](https://preview.tabler.io/job-listing.html). The upstream stylesheet and [MIT license](web/vendor/tabler/LICENSE.tabler.txt) are included with the website.
